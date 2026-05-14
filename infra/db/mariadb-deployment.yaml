@@ -28,13 +28,22 @@ spec:
           valueFrom:
             secretKeyRef:
               name: mariadb-secret
-              key: ROOT_PASSWORD
+              key: MARIADB_ROOT_PASSWORD
         - name: MARIADB_DATABASE
-          value: "biddinggo"
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: DB_NAME
         - name: MARIADB_USER
-          value: "biddinggo"
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: DB_USERNAME
         - name: MARIADB_PASSWORD
-          value: "biddinggo"
+          valueFrom:
+            secretKeyRef:
+              name: mariadb-secret
+              key: DB_PASSWORD
         ports:
         - containerPort: 3306
         volumeMounts:

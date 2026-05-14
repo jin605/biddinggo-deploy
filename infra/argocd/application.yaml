@@ -7,14 +7,14 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/beyond-sw-camp/be25-4th-biddingmate-biddinggo.git
+    repoURL: https://github.com/jin605/biddinggo-deploy.git
     targetRevision: main
     path: infra/k8s
     directory:
       recurse: true
 
   destination:
-    server: 운영클러스터_SERVER값
+    server: https://kubernetes.default.svc
     namespace: biddinggo
 
   syncPolicy:

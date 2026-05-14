@@ -10,14 +10,14 @@ data:
   DB_HOST: "mariadb-service"
   DB_PORT: "3306"
   DB_NAME: "biddinggo"
-  DB_USERNAME: "biddinggo"
+  DB_USERNAME: "biddingmate"
 
   REDIS_HOST: "redis-service"
   REDIS_PORT: "6379"
   REDIS_USERNAME: "default"
 
-  FRONTEND_URL: "https://bidding-go.shop"
-  FRONTEND_REDIRECT_URI: "https://bidding-go.shop/auth/callback"
+  FRONTEND_URL: "https://bidding-go.shop:30443"
+  FRONTEND_REDIRECT_URI: "https://bidding-go.shop:30443/auth/callback"
   BACKEND_GOOGLE_REDIRECT_URI: "https://api.bidding-go.shop/login/oauth2/code/google"
   BACKEND_KAKAO_REDIRECT_URI: "https://api.bidding-go.shop/login/oauth2/code/kakao"
   OPENAPI_SERVER_URL: "https://api.bidding-go.shop"
