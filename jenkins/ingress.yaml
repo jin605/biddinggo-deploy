@@ -17,7 +17,7 @@ metadata:
   namespace: argocd
 subsets:
   - addresses:
-      - ip: JENKINS_SERVER_IP
+      - ip: 192.168.45.87
     ports:
       - name: http
         port: 8081

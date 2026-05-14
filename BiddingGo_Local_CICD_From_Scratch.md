@@ -1161,50 +1161,77 @@ kubectl get ingress -n biddinggo
 현재 BiddingGo Jenkinsfile은 `docker build`, `docker push` 명령어를 직접 실행한다.  
 따라서 Jenkins가 Docker CLI를 사용할 수 있어야 한다.
 
-가장 단순한 로컬 방식은 Jenkins를 Docker 컨테이너로 띄우고, Docker socket을 mount하는 것이다.
-
-## 21.1 Jenkins Dockerfile 생성
+현재 repository에는 Jenkins용 Docker Compose 파일이 있다.
 
 ```bash
-mkdir -p ~/develop/biddinggo-cicd/jenkins
-cd ~/develop/biddinggo-cicd/jenkins
+jenkins/docker-compose.yml
 ```
 
-```bash
-cat <<'EOF' > Dockerfile
-FROM jenkins/jenkins:lts-jdk21
+이 compose는 Jenkins를 로컬 Docker 컨테이너로 띄우고, host Docker socket을 mount해서 Jenkins 컨테이너 안에서 host Docker daemon을 사용하게 하는 구조다.
 
-USER root
-
-RUN apt-get update \
-    && apt-get install -y docker.io git curl vim \
-    && rm -rf /var/lib/apt/lists/*
-
-USER root
-EOF
+```text
+Jenkins container
+  -> /var/run/docker.sock mount
+  -> host Docker daemon 사용
+  -> docker build / docker push 수행
 ```
 
-## 21.2 Jenkins 이미지 빌드
+## 21.1 macOS Docker Desktop 주의사항
 
-```bash
-docker build -t local-jenkins-docker .
+현재 `jenkins/docker-compose.yml`에는 Linux 기준 설정이 섞여 있다.
+
+```yaml
+volumes:
+  - /var/run/docker.sock:/var/run/docker.sock
+  - /usr/bin/docker:/usr/bin/docker
+
+group_add:
+  - "<docker_gid>"
 ```
 
-## 21.3 Jenkins 컨테이너 실행
+macOS Docker Desktop에서는 보통 `/usr/bin/docker`가 없다.
+
+확인:
 
 ```bash
-docker volume create jenkins_home
+which docker
 ```
 
+Apple Silicon / Homebrew 기준으로는 보통 다음 중 하나다.
+
+```text
+/opt/homebrew/bin/docker
+/usr/local/bin/docker
+```
+
+따라서 macOS에서는 다음 중 하나로 정리해야 한다.
+
+```text
+방법 A: Jenkins image 안에 Docker CLI가 포함된 custom Jenkins image를 만든다.
+방법 B: compose의 docker binary mount 경로를 macOS의 실제 docker 경로로 바꾼다.
+```
+
+학습용으로는 방법 A가 더 안정적이다. host의 `/var/run/docker.sock`만 mount하고, Docker CLI는 Jenkins image 안에 설치해두는 방식이다.
+
+> 주의
+>
+> `group_add: "<docker_gid>"`도 Linux host 기준이다.  
+> macOS Docker Desktop에서는 그대로 쓰면 안 되므로 실제 실행 전 제거하거나 macOS에 맞게 조정해야 한다.
+
+## 21.2 Jenkins Compose 실행
+
+현재 compose 기준 Jenkins 접속 포트는 `8081`이다.
+
+```yaml
+ports:
+  - "8081:8080"
+```
+
+실행:
+
 ```bash
-docker run -d \
-  --name jenkins \
-  -u root \
-  -p 8082:8080 \
-  -p 50000:50000 \
-  -v jenkins_home:/var/jenkins_home \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  local-jenkins-docker
+cd /Users/jin605/develop/biddinggo/biddinggo-deploy
+docker compose -f jenkins/docker-compose.yml up -d
 ```
 
 확인:
@@ -1217,14 +1244,98 @@ docker logs -f jenkins
 브라우저 접속:
 
 ```text
-http://localhost:8082
+http://localhost:8081
 ```
+
+## 21.3 Jenkins 컨테이너에서 Docker 사용 확인
+
+Jenkins 컨테이너 안에서 Docker CLI가 동작하는지 확인한다.
+
+```bash
+docker exec -it jenkins docker version
+docker exec -it jenkins docker ps
+```
+
+정상이라면 Jenkins 컨테이너 안에서 host Docker daemon 정보를 볼 수 있다.
+
+만약 다음과 같은 에러가 나면 Docker CLI가 Jenkins 컨테이너 안에 없거나 socket 권한 문제가 있는 것이다.
+
+```text
+docker: command not found
+permission denied while trying to connect to the Docker daemon socket
+```
+
+이 경우 `jenkins/docker-compose.yml`의 macOS Docker CLI 경로와 socket mount 설정을 다시 확인한다.
 
 ## 21.4 Jenkins 초기 비밀번호 확인
 
 ```bash
 docker exec -it jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 ```
+
+## 21.5 Jenkins Ingress 사용 시 주의사항
+
+현재 repository에는 Jenkins용 Ingress manifest도 있다.
+
+```bash
+jenkins/ingress.yaml
+```
+
+이 파일은 Kubernetes 안에 Jenkins Pod를 띄우는 방식이 아니라,
+Kubernetes Ingress가 로컬 Docker Compose로 떠 있는 Jenkins로 요청을 넘기는 구조다.
+
+```text
+Browser
+  -> https://jenkins.bidding-go.shop:30443
+  -> ingress-nginx
+  -> Service jenkins-external
+  -> Endpoints JENKINS_SERVER_IP:8081
+  -> Mac host의 Jenkins compose container
+```
+
+따라서 `jenkins/ingress.yaml`의 `JENKINS_SERVER_IP`는 실제 Mac host IP로 바꿔야 한다.
+
+```yaml
+subsets:
+  - addresses:
+      - ip: JENKINS_SERVER_IP
+```
+
+Mac에서 현재 IP 확인:
+
+```bash
+ipconfig getifaddr en0
+```
+
+유선/환경에 따라 `en0`가 비어 있으면 다음도 확인한다.
+
+```bash
+ipconfig getifaddr en1
+```
+
+Ingress host도 `/etc/hosts`에 추가한다.
+
+```text
+127.0.0.1 jenkins.bidding-go.shop
+```
+
+적용:
+
+```bash
+kubectl apply -f jenkins/ingress.yaml
+```
+
+접속:
+
+```text
+https://jenkins.bidding-go.shop:30443
+```
+
+> 주의
+>
+> `JENKINS_SERVER_IP` placeholder를 그대로 두면 동작하지 않는다.  
+> 또한 macOS 방화벽이나 Docker Desktop 네트워크 설정에 따라 Kubernetes Pod가 Mac host의 `8081` 포트에 접근하지 못할 수 있다.
+> 이 경우 ngrok 또는 port-forward 방식으로 Jenkins에 접속한다.
 
 ---
 
@@ -1236,7 +1347,7 @@ Jenkins 화면에서 다음 순서로 설정한다.
 1. 초기 비밀번호 입력
 2. Install suggested plugins 선택
 3. 관리자 계정 생성
-4. Jenkins URL: http://localhost:8082
+4. Jenkins URL: http://localhost:8081
 ```
 
 추가로 필요한 플러그인이 없다면 기본 추천 플러그인으로 충분하다.  
@@ -1303,7 +1414,7 @@ Pipeline 설정:
 ```text
 Definition: Pipeline script from SCM
 SCM: Git
-Repository URL: https://github.com/beyond-sw-camp/be25-2nd-biddingmate-biddinggo.git
+Repository URL: https://github.com/jin605/<BACKEND_REPOSITORY>.git
 Branch Specifier: */main
 Script Path: Jenkinsfile
 ```
@@ -1318,7 +1429,7 @@ Jenkins 빌드가 실행되면 다음 단계가 수행된다.
 
 ```text
 Docker Build
-  -> ghcr.io/beyond-sw-camp/be25-2nd-biddingmate-biddinggo:<BUILD_NUMBER> 생성
+  -> ghcr.io/jin605/biddinggo-backend:<BUILD_NUMBER> 생성
 
 Push to GHCR
   -> GHCR에 이미지 push
@@ -1333,11 +1444,26 @@ Jenkins 로그에서 확인할 부분:
 
 ```text
 docker build 성공 여부
-docker push 성공 여부
+docker push ghcr.io/jin605/biddinggo-backend:<BUILD_NUMBER> 성공 여부
 git clone 성공 여부
 sed로 image tag 수정 여부
 git commit / push 성공 여부
 ```
+
+> 주의
+>
+> Backend Jenkinsfile도 개인 GHCR 기준으로 맞아 있어야 한다.
+>
+> ```groovy
+> GHCR_OWNER = 'jin605'
+> IMAGE_NAME = 'biddinggo-backend'
+> ```
+>
+> Manifest repository URL도 현재 deploy repository와 맞아야 한다.
+>
+> ```groovy
+> CICD_REPO_URL = 'github.com/jin605/biddinggo-deploy.git'
+> ```
 
 ---
 
@@ -1348,19 +1474,21 @@ Jenkins가 Manifest Repository에 push하면 Argo CD가 변경을 감지한다.
 Argo CD Application 확인:
 
 ```bash
-argocd app get biddinggo
-```
-
-수동 sync:
-
-```bash
-argocd app sync biddinggo
+kubectl get application biddinggo-app -n argocd
+kubectl describe application biddinggo-app -n argocd
 ```
 
 Kubernetes Deployment image 확인:
 
 ```bash
 kubectl get deployment biddinggo-api-deploy -n biddinggo \
+  -o=jsonpath='{.spec.template.spec.containers[0].image}'; echo
+```
+
+Frontend Deployment image 확인:
+
+```bash
+kubectl get deployment biddinggo-web-deploy -n biddinggo \
   -o=jsonpath='{.spec.template.spec.containers[0].image}'; echo
 ```
 
@@ -1406,10 +1534,10 @@ ngrok config add-authtoken <NGROK_AUTH_TOKEN>
 
 ## 27.2 Jenkins 포트 공개
 
-Jenkins가 `http://localhost:8082`에서 실행 중이므로 다음을 실행한다.
+Jenkins가 `http://localhost:8081`에서 실행 중이므로 다음을 실행한다.
 
 ```bash
-ngrok http 8082
+ngrok http 8081
 ```
 
 ngrok이 제공하는 HTTPS 주소를 확인한다.
@@ -1425,7 +1553,7 @@ https://abc123.ngrok-free.app
 Backend Repository로 이동:
 
 ```text
-https://github.com/beyond-sw-camp/be25-2nd-biddingmate-biddinggo
+https://github.com/jin605/<BACKEND_REPOSITORY>
 ```
 
 설정:
@@ -1513,9 +1641,8 @@ kubectl rollout undo deployment/biddinggo-api-deploy -n biddinggo --to-revision=
 ## 28.7 Argo CD 확인
 
 ```bash
-argocd app list
-argocd app get biddinggo
-argocd app sync biddinggo
+kubectl get application -n argocd
+kubectl describe application biddinggo-app -n argocd
 ```
 
 ## 28.8 Jenkins 확인
@@ -1657,13 +1784,16 @@ PONG
 확인:
 
 ```bash
-argocd app get biddinggo
+kubectl get application biddinggo-app -n argocd
+kubectl describe application biddinggo-app -n argocd
 ```
 
-강제 sync:
+Argo CD는 GitHub repository의 `main` branch를 기준으로 동작한다.
+따라서 로컬 manifest만 수정한 상태라면 Argo CD가 변경을 볼 수 없다.
 
 ```bash
-argocd app sync biddinggo
+git status
+git push origin main
 ```
 
 Kubernetes 상태 확인:
@@ -1688,19 +1818,11 @@ docker exec -it jenkins docker ps
 안 되면 Jenkins 컨테이너를 삭제하고 다시 실행한다.
 
 ```bash
-docker rm -f jenkins
+docker compose -f jenkins/docker-compose.yml down
+docker compose -f jenkins/docker-compose.yml up -d
 ```
 
-```bash
-docker run -d \
-  --name jenkins \
-  -u root \
-  -p 8082:8080 \
-  -p 50000:50000 \
-  -v jenkins_home:/var/jenkins_home \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  local-jenkins-docker
-```
+macOS에서는 `jenkins/docker-compose.yml`의 Docker CLI 경로와 `group_add` 설정이 Linux 기준으로 남아 있지 않은지 확인한다.
 
 ---
 
@@ -1719,8 +1841,8 @@ mkdir -p ~/develop/biddinggo-cicd
 cd ~/develop/biddinggo-cicd
 
 # 3. 레포 clone
-git clone https://github.com/beyond-sw-camp/be25-2nd-biddingmate-biddinggo.git
-git clone https://github.com/beyond-sw-camp/be25-4th-biddingmate-biddinggo.git
+git clone https://github.com/jin605/<BACKEND_REPOSITORY>.git
+git clone https://github.com/jin605/biddinggo-deploy.git
 
 # 4. namespace
 kubectl create namespace biddinggo
