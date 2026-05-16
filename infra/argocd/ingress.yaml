@@ -9,6 +9,11 @@ metadata:
 spec:
   ingressClassName: nginx
 
+  tls:
+    - hosts:
+        - argocd.jinddd3.synology.me
+      secretName: argocd-tls
+
   rules:
     - host: argocd.jinddd3.synology.me
       http:
