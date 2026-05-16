@@ -18,9 +18,9 @@ data:
 
   FRONTEND_URL: "https://bidding-go.shop:30443"
   FRONTEND_REDIRECT_URI: "https://bidding-go.shop:30443/auth/callback"
-  BACKEND_GOOGLE_REDIRECT_URI: "https://api.bidding-go.shop/login/oauth2/code/google"
-  BACKEND_KAKAO_REDIRECT_URI: "https://api.bidding-go.shop/login/oauth2/code/kakao"
-  OPENAPI_SERVER_URL: "https://api.bidding-go.shop"
+  BACKEND_GOOGLE_REDIRECT_URI: "https://biddinggo.jinddd3.synology.me/login/oauth2/code/google"
+  BACKEND_KAKAO_REDIRECT_URI: "https://biddinggo.jinddd3.synology.me/login/oauth2/code/kakao"
+  OPENAPI_SERVER_URL: "https://biddinggo.jinddd3.synology.me"
 
   AUCTION_PREDICTION_MIN_REFERENCE_COUNT: "1"
   AUCTION_PREDICTION_TOP_K: "20"

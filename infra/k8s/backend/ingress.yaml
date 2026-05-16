@@ -10,9 +10,9 @@ spec:
   tls:
   - secretName: biddinggo-api-tls-secret
     hosts:
-    - api.bidding-go.shop
+    - biddinggo.jinddd3.synology.me
   rules:
-  - host: api.bidding-go.shop
+  - host: biddinggo.jinddd3.synology.me
     http:
       paths:
       - pathType: Prefix
