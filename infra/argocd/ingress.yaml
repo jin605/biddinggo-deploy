@@ -10,7 +10,7 @@ spec:
   ingressClassName: nginx
 
   rules:
-    - host: argocd.jinddd3.synlogy.me
+    - host: argocd.jinddd3.synology.me
       http:
         paths:
           - path: /
