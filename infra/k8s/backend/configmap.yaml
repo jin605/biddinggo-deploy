@@ -16,8 +16,8 @@ data:
   REDIS_PORT: "6379"
   REDIS_USERNAME: "default"
 
-  FRONTEND_URL: "https://bidding-go.shop:30443"
-  FRONTEND_REDIRECT_URI: "https://bidding-go.shop:30443/auth/callback"
+  FRONTEND_URL: "https://biddinggo.vercel.app"
+  FRONTEND_REDIRECT_URI: "https://biddinggo.vercel.app/auth/callback"
   BACKEND_GOOGLE_REDIRECT_URI: "https://biddinggo.jinddd3.synology.me/login/oauth2/code/google"
   BACKEND_KAKAO_REDIRECT_URI: "https://biddinggo.jinddd3.synology.me/login/oauth2/code/kakao"
   OPENAPI_SERVER_URL: "https://biddinggo.jinddd3.synology.me"

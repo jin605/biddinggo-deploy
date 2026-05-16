@@ -11,5 +11,5 @@ spec:
   storageClassName: manual
   persistentVolumeReclaimPolicy: Delete
   hostPath:
-    path: /Users/jin605/develop/biddinggo-data/mariadb-biddinggo
+    path: /data/biddinggo/mariadb 
 
