@@ -17,7 +17,7 @@ metadata:
   namespace: argocd
 subsets:
   - addresses:
-      - ip: 192.168.45.87
+      - ip: 192.168.45.115
     ports:
       - name: http
         port: 8081
@@ -28,16 +28,10 @@ kind: Ingress
 metadata:
   name: jenkins-ingress
   namespace: argocd
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
-  tls:
-    - hosts:
-        - jenkins.bidding-go.shop
-      secretName: jenkins-tls
   rules:
-    - host: jenkins.bidding-go.shop
+    - host: jenkins.jinddd3.synology.me
       http:
         paths:
           - path: /

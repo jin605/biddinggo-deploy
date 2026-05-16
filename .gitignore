@@ -54,3 +54,5 @@ backend/build/
 backend/.gradle/
 frontend/dist/
 frontend/node_modules/
+
+jenkins/jenkins_home/
