@@ -3,14 +3,8 @@ kind: Ingress
 metadata:
   name: biddinggo-api-ingress
   namespace: biddinggo
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
   ingressClassName: nginx
-  tls:
-  - secretName: biddinggo-api-tls-secret
-    hosts:
-    - biddinggo.jinddd3.synology.me
   rules:
   - host: biddinggo.jinddd3.synology.me
     http:
