@@ -14,7 +14,7 @@ Docker Desktop Kubernetes 활성화
   -> MariaDB / Redis 구성
   -> BiddingGo Manifest 적용
   -> Argo CD Application 생성
-  -> Jenkins Pipeline으로 이미지 빌드 및 Manifest 갱신
+  -> Jenkins Pipeline으로 이미지 빌드 및 Manifest 갱
   -> Argo CD가 Kubernetes에 자동 배포
 ```
 
